@@ -1,0 +1,111 @@
+version: '2'
+
+services:
+  app:
+    container_name: fireguai_app
+    image: fireguai/docker:fireguai_app
+    expose:
+      - "3000"
+    depends_on:
+      - db
+      - log
+    restart: always
+    volumes:
+      - publickey:/home/user/.ssh/
+    networks:
+      - frontend
+      - backend
+    environment:
+      RAILS_ENV: 'production'
+      SECRET_KEY_BASE: "${FIREGUAI_SECRET_KEY_BASE}"
+      DEVISE_JWT_SECRET_KEY: "${FIREGUAI_DEVISE_JWT_SECRET_KEY}"
+      CONFIG_SITEURL: "${FIREGUAI_CONFIG_SITEURL}"
+      CONFIG_MAILFROM: "${FIREGUAI_CONFIG_MAILFROM}"
+      CONFIG_SMTP_HOST: "${FIREGUAI_CONFIG_SMTP_HOST}"
+      CONFIG_SMTP_PORT: "${FIREGUAI_CONFIG_SMTP_PORT}"
+      CONFIG_SMTP_USERNAME: "${FIREGUAI_CONFIG_SMTP_USERNAME}"
+      CONFIG_SMTP_PASSWORD: "${FIREGUAI_CONFIG_SMTP_PASSWORD}"
+      CONFIG_SMTP_DOMAIN: "${FIREGUAI_CONFIG_SMTP_DOMAIN}"
+      CONFIG_AAD_CLIENT_ID: "${FIREGUAI_CONFIG_AAD_CLIENT_ID}"
+      CONFIG_AAD_TENANT_ID: "${FIREGUAI_CONFIG_AAD_TENANT_ID}"
+
+  db:
+    container_name: fireguai_db
+    image: fireguai/docker:fireguai_db
+    expose:
+      - "5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+    depends_on:
+      - log
+    restart: always
+    networks:
+      - backend
+    environment:
+      POSTGRES_USER: "postgres"
+
+  web:
+    container_name: fireguai_web
+    image: fireguai/docker:fireguai_web
+    ports:
+      - "$LISTENIP:443:443/tcp"
+      - "$LISTENIP:80:80/tcp"
+    depends_on:
+      - app
+      - log
+      - certbot
+    restart: always
+    volumes:
+      - certificates:/etc/ssl
+      - letsencrypt:/etc/letsencrypt
+      - certbot:/var/www/certbot
+      - publickey:/var/www/.ssh/
+    networks:
+      - frontend
+
+  certbot:
+    image: fireguai/docker:fireguai_certbot
+    container_name: fireguai_certbot
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot:/var/www/certbot
+      - publickey:/home/certbot/.ssh/
+    networks:
+      - frontend
+
+  log:
+    container_name: fireguai_log
+    image: fireguai/docker:fireguai_log
+    expose:
+      - "514/udp"
+    restart: always
+    networks:
+      - frontend
+      - backend
+    
+  setup:
+    container_name: fireguai_setup
+    image: fireguai/docker:fireguai_setup
+    depends_on:
+      - web
+      - app
+      - db
+    restart: "no"
+    volumes:
+      - certificates:/opt/ssl/
+      - privatekey:/home/user/.ssh
+    networks:
+      - frontend
+      - backend
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  database:
+  certificates:
+  letsencrypt:
+  certbot:
+  privatekey:
+  publickey:
