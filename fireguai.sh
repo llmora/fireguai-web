@@ -29,7 +29,7 @@ TMPDIR=`mktemp -d`
 		echo "[*] Downloading latest version of fireguai."
 		_fireguaiCleanup
 
-		${CURL} -Lso docker-compose.yml "https://raw.githubusercontent.com/llmora/fireguai-web/master/docker-compose-run.yml"
+		${CURL} -Lso docker-compose.yml "https://flow.gi/fireguai-web/docker-compose-run.yml"
 
 		if [ "$?" -ne 0 ]; then
 		  echo "[-] ERROR: Unable to download fireguai: cannot get docker compose file"
